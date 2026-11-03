@@ -2,8 +2,11 @@
 
 import argparse
 import sys
+import time
 
 from image_processing import load_image, pixelate_region, save_image
+from display import ImageWindow
+from runners import run_single, run_multi, worker_count
 # It is output for saving the result image after processing it
 RESULT_PATH = "result.jpg"
 
@@ -26,6 +29,7 @@ def parse_args():
     return parser.parse_args()
 
 # I have used exception to make sure that program will not crash if the image path is not correct or the image is not readable, and also I have used sys.stderr to print the error messages to the standard error stream, which is a good practice for error reporting
+
 def main():
     args = parse_args()
 
@@ -39,15 +43,30 @@ def main():
     print(f"Loaded '{args.image}' ({width}x{height}), "
           f"square size {args.square_size}, mode {args.mode}")
 
-    if args.mode == "M":
-        print("Multi-core mode is not implemented yet.", file=sys.stderr)
+    window = ImageWindow(f"Pixelator - mode {args.mode}", image.shape)
+    window.show(image)
+
+    start = time.perf_counter()
+    if args.mode == "S":
+        completed = run_single(image, args.square_size, window)
+    else:
+        completed = run_multi(image, args.square_size, window, worker_count())
+    elapsed = time.perf_counter() - start
+
+    if not completed:
+        print("Window closed before processing finished - result not saved.")
+        window.close()
         return 1
 
-    pixelate_region(image, 0, height, args.square_size)
-
     save_image(RESULT_PATH, image)
-    print(f"Done. Result saved to '{RESULT_PATH}'.")
+    print(f"Done in {elapsed:.2f} s. Result saved to '{RESULT_PATH}'.")
+    print("Press any key or close the window to exit.")
+
+    window.wait_for_close(image)
+    window.close()
     return 0
+
+
 
 
 if __name__ == "__main__":
