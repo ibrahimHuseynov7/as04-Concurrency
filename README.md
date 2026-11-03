@@ -39,6 +39,7 @@ pip install -r requirements.txt
 
 ```bash
 python main.py <photo.jpg> <square_size> <S|M> [--fast]
+Please wait around 5-6 seconds for the first run, as the libraries are compiled and cached.
 ```
 
 | Argument      | Meaning                                                   |
