@@ -1,7 +1,7 @@
-
 import cv2
 
 FALLBACK_SCREEN_SIZE = (1280, 720) # I have put a fallback screen size in case the actual screen size cannot be determined
+SCREEN_USAGE = 0.85
 QUIT_KEYS = (27, ord("q"))   # Escape and 'q' keys
 NO_KEY = 255
 
@@ -51,12 +51,22 @@ class ImageWindow:
        
         if not self.show(image):
             return
+        self._bring_to_front()
         while self._poll(wait_ms=100, any_key_quits=True):
             pass
 
     def close(self):
         cv2.destroyAllWindows()
         cv2.waitKey(1)  # lets the GUI backend actually remove the window
+        for _ in range(5):
+            cv2.waitKey(1)
+
+    def _bring_to_front(self):
+        try:
+            cv2.setWindowProperty(self.title, cv2.WND_PROP_TOPMOST, 1)
+        except (cv2.error, AttributeError):
+            pass
+
 # Process GUI event, I have used very naive way to detect quit keys
     def _poll(self, wait_ms, any_key_quits=False):
         

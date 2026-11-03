@@ -16,7 +16,7 @@ def worker_count():
     return os.cpu_count() or 1
 
 # this processes the whole image in the main thread, refreshing the window as it goes, it takes image and square size as needed in task
-def run_single(image, square_size, window):
+def run_single(image, square_size, window, delay_per_square):
     
     last_refresh = 0.0
 
@@ -29,20 +29,20 @@ def run_single(image, square_size, window):
         return window.show(image)
 
     return pixelate_region(image, 0, image.shape[0], square_size,
-                           on_progress=refresh_window)
+                           delay_per_square, on_progress=refresh_window)
 
 
-def _worker(shm_name, shape, y_start, y_end, square_size):
+def _worker(shm_name, shape, y_start, y_end, square_size, delay_per_square):
     
     shm = SharedMemory(name=shm_name)
     try:
         image = np.ndarray(shape, dtype=np.uint8, buffer=shm.buf)
-        pixelate_region(image, y_start, y_end, square_size)
+        pixelate_region(image, y_start, y_end, square_size, delay_per_square)
         del image  # release the buffer before closing the shared memory
     finally:
         shm.close()
 # this function is for processing the image in parallel using multiple worker processes, it divides the image into horizontal bands and assigns each band to a separate worker process, it uses shared memory to allow all processes to access and modify the same image data, it also refreshes the window as the workers process their assigned regions, and handles user input to close the window if needed
-def run_multi(image, square_size, window, workers):
+def run_multi(image, square_size, window, delay_per_square, workers):
     
     shm = SharedMemory(create=True, size=image.nbytes)
     try:
@@ -52,7 +52,8 @@ def run_multi(image, square_size, window, workers):
         regions = split_into_regions(image.shape[0], square_size, workers)
         processes = [
             Process(target=_worker,
-                    args=(shm.name, image.shape, y_start, y_end, square_size),
+                    args=(shm.name, image.shape, y_start, y_end,
+                          square_size, delay_per_square),
                     daemon=True)
             for y_start, y_end in regions
         ]
