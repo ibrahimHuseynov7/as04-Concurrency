@@ -1,5 +1,4 @@
 
-
 import cv2
 
 QUIT_KEYS = (27, ord("q"))   # Escape and 'q' keys
